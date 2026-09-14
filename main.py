@@ -1,10 +1,10 @@
-import winsound
+import os
+import platform
+import sys
+import time
 from typing import Dict, Tuple
-import keyboard
-
-
-# sound test stuff
-# remmber add mac support
+import winsound
+import flet as ft
 
 KEY_NOTE_MAP: Dict[str, Tuple[int, int]] = {
     "a": (261, 150),  # c4
@@ -35,7 +35,6 @@ def play_frequency(freq: int, duration: int) -> None:
     winsound.Beep(freq, duration)
 
 
-
 def trigger_drum(drum_type: str) -> None:
     if drum_type == "KICK":
         play_frequency(80, 100)
@@ -47,28 +46,66 @@ def trigger_drum(drum_type: str) -> None:
         play_frequency(800, 60)
 
 
-def on_key_event(event: keyboard.KeyboardEvent) -> None:
-    # keypress handler
-    if event.event_type != keyboard.KEY_DOWN:
-        return
+def main(page: ft.Page) -> None:
+    page.title = "Tempo"
+    page.bgcolor = "#121212"
+    page.padding = 20
 
-    key = event.name.lower()
+    status_text = ft.Text(
+        value="Press buttons for sounds",
+        size=16,
+        color="#888888",
+    )
 
-    if key in KEY_NOTE_MAP:
-        freq, duration = KEY_NOTE_MAP[key]
-        print(f"-> hit note: {key.upper()} ({freq} Hz)")
-        play_frequency(freq, duration)
+    def handle_synth_click(e: ft.ControlEvent) -> None:
+        key_name = e.control.data
+        if key_name in KEY_NOTE_MAP:
+            freq, duration = KEY_NOTE_MAP[key_name]
+            status_text.value = f"Playing Note: {key_name.upper()} ({freq} Hz)"
+            page.update()
+            play_frequency(freq, duration)
 
-    elif key in DRUM_MAP:
-        drum = DRUM_MAP[key]
-        print(f"-> hit drum: {key} [{drum}]")
-        trigger_drum(drum)
+    def handle_drum_click(e: ft.ControlEvent) -> None:
+        drum_key = e.control.data
+        if drum_key in DRUM_MAP:
+            drum_name = DRUM_MAP[drum_key]
+            status_text.value = f"Playing Drum: {drum_name}"
+            page.update()
+            trigger_drum(drum_name)
+
+    # synth keys row
+    synth_buttons = []
+    for key, (freq, _) in KEY_NOTE_MAP.items():
+        synth_buttons.append(
+            ft.Button(
+                content=key.upper(),
+                data=key,
+                on_click=handle_synth_click,
+                width=50,
+                height=50,
+                bgcolor="#2196F3" if len(key) == 1 else "#333333",
+                color="#FFFFFF",
+            )
+        )
+
+    # drum pads row
+    drum_buttons = []
+    drum_colors = {
+        "1": "#E91E63",
+        "2": "#9C27B0",
+        "3": "#00BCD4",
+        "4": "#4CAF50",
+    }
+    for key, name in DRUM_MAP.items():
+        drum_buttons.append(
+            ft.Button(
+                content=f"{name}\n({key})",
+                data=key,
+                on_click=handle_drum_click,
+                width=80,
+            )
+        )
 
 
-def main() -> None:
-    keyboard.hook(on_key_event)
-    keyboard.wait("esc")
-    print("closing")
-
-
-main()
+if __name__ == "__main__":
+    ft.run(main)
