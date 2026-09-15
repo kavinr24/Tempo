@@ -1,7 +1,3 @@
-import os
-import platform
-import sys
-import time
 from typing import Dict, Tuple
 import winsound
 import flet as ft
@@ -28,6 +24,9 @@ DRUM_MAP: Dict[str, str] = {
     "3": "HI-HAT",
     "4": "CLAP",
 }
+
+TRACKS = ["Kick", "Snare", "Hi-Hat", "Synth"]
+STEPS = 16
 
 
 def play_frequency(freq: int, duration: int) -> None:
@@ -105,6 +104,80 @@ def main(page: ft.Page) -> None:
                 width=80,
             )
         )
+
+    grid_state = [[False for _ in range(STEPS)] for _ in range(len(TRACKS))]
+
+    step_buttons = {}
+
+    def toggle_step(e, track_idx, step_idx):
+        grid_state[track_idx][step_idx] = not grid_state[track_idx][step_idx]
+        is_active = grid_state[track_idx][step_idx]
+        btn = step_buttons[(track_idx, step_idx)]
+        btn.bgcolor = "#00E676" if is_active else "#2A2A2A"
+        btn.border = ft.border.Border.all(1, "#00E676" if is_active else "#3A3A3A")
+        page.update()
+
+    def build_sequencer_grid():
+        grid_rows = []
+
+        header_cells = [ft.Container(width=80)]
+        for step in range(STEPS):
+            header_cells.append(
+                ft.Container(
+                    content=ft.Text(f"{step + 1}", size=11, color="#777777", weight=ft.FontWeight.BOLD),
+                    width=36,
+                    height=24,
+                    alignment=ft.alignment.Alignment.CENTER,
+                )
+            )
+        grid_rows.append(ft.Row(controls=header_cells, spacing=4))
+
+        for t_idx, track_name in enumerate(TRACKS):
+            row_cells = [
+                ft.Container(
+                    content=ft.Text(track_name, size=13, weight=ft.FontWeight.BOLD, color="#EEEEEE"),
+                    width=80,
+                    alignment=ft.alignment.Alignment.CENTER_LEFT,
+                )
+            ]
+
+            for s_idx in range(STEPS):
+                measure_offset = (s_idx // 4) % 2 == 0
+                bg_color = "#2A2A2A" if measure_offset else "#222222"
+
+                btn = ft.Container(
+                    width=36,
+                    height=44,
+                    bgcolor=bg_color,
+                    border_radius=4,
+                    border=ft.border.Border.all(1, "#333333"),
+                    on_click=lambda e, t=t_idx, s=s_idx: toggle_step(e, t, s),
+                )
+                step_buttons[(t_idx, s_idx)] = btn
+                row_cells.append(btn)
+
+            grid_rows.append(ft.Row(controls=row_cells, spacing=4))
+
+        return ft.Column(controls=grid_rows, spacing=8)
+
+    play_btn = ft.IconButton(icon=ft.Icons.PLAY_ARROW_ROUNDED, icon_color="#00E676", icon_size=32)
+    bpm_field = ft.TextField(value="120", label="BPM", width=80, dense=True, text_align=ft.TextAlign.CENTER)
+
+    header = ft.Row(
+        controls=[
+            ft.Text("Tempo", size=24, weight=ft.FontWeight.BOLD, color="#FFFFFF"),
+            ft.Row(controls=[play_btn, bpm_field], spacing=10),
+        ],
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+    )
+
+    page.add(
+        header,
+        status_text,
+        ft.Row(controls=synth_buttons, wrap=True, spacing=4),
+        ft.Row(controls=drum_buttons, spacing=8),
+        build_sequencer_grid(),
+    )
 
 
 if __name__ == "__main__":
