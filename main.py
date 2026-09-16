@@ -45,10 +45,29 @@ def trigger_drum(drum_type: str) -> None:
         play_frequency(800, 60)
 
 
+def handle_keybind_press(e: ft.KeyboardEvent, page: ft.Page) -> None:
+    key = e.key.lower()
+
+    if key in DRUM_MAP:
+        drum_type = DRUM_MAP[key]
+        trigger_drum(drum_type)
+        page.show_dialog(ft.SnackBar(ft.Text(f"Hit drum: {drum_type}"), duration=500))
+
+    elif key in KEY_NOTE_MAP:
+        freq, dur = KEY_NOTE_MAP[key]
+        play_frequency(freq, dur)
+        page.show_dialog(ft.SnackBar(ft.Text(f"Hit Note: {key.upper()} ({freq} Hz)"), duration=500))
+
+
+def register_keyboard_listeners(page: ft.Page) -> None:
+    page.on_keyboard_event = lambda e: handle_keybind_press(e, page)
+
+
 def main(page: ft.Page) -> None:
     page.title = "Tempo"
     page.bgcolor = "#121212"
     page.padding = 20
+    register_keyboard_listeners(page)
 
     status_text = ft.Text(
         value="Press buttons for sounds",
